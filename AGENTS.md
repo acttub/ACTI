@@ -17,6 +17,12 @@ Run commands from the repository root:
 - `pnpm lint` runs ESLint across the app.
 - `pnpm test` runs Vitest once; `pnpm test:watch` starts watch mode.
 
+⚠️ **푸시 전에 `pnpm build`를 반드시 돌린다.** `pnpm test`·`pnpm lint`·`tsc --noEmit`을 전부 통과해도
+빌드에서만 터지는 오류가 있다. 빌드의 `tsc -b`는 테스트 파일까지 프로젝트 참조로 엄격하게 검사해서,
+예를 들어 `vi.fn(() => ...)` 로 만든 mock 의 `mock.calls[0][1]` 은 빈 튜플 인덱싱(TS2493)이 된다
+(고치는 법: `vi.fn<typeof fetch>(...)` 처럼 mock 에 함수 타입을 못박는다).
+푸시가 곧 배포라 여기서 놓치면 Vercel 배포가 ERROR 로 끝나고, 사이트는 옛 버전 그대로 남는다.
+
 ## Coding Style & Naming Conventions
 
 Use TypeScript and React function components. Follow the existing style: two-space indentation, single quotes, semicolons in TS/TSX files, and explicit exported types where they clarify module contracts. Name React components and files in PascalCase, such as `PrimaryButton.tsx`; name utilities in camelCase, such as `sendResult.ts`. Keep component-specific CSS beside the component or page it styles.

@@ -18,13 +18,13 @@ describe('코어 유입 계측 — 실서비스 밖', () => {
   });
 
   it('acttub.com 이 아닌 곳에서는 아무것도 보내지 않는다', () => {
-    const beacon = vi.fn(() => true);
+    const beacon = vi.fn<typeof navigator.sendBeacon>(() => true);
     Object.defineProperty(navigator, 'sendBeacon', {
       value: beacon,
       configurable: true,
       writable: true,
     });
-    const fetchMock = vi.fn(() => Promise.resolve(new Response()));
+    const fetchMock = vi.fn<typeof fetch>(() => Promise.resolve(new Response()));
     vi.stubGlobal('fetch', fetchMock);
 
     expect(location.hostname).toBe('localhost');

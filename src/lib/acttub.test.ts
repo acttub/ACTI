@@ -15,7 +15,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { openActtub, trackCore } from './acttub';
 
 function stubBeacon(result: boolean) {
-  const beacon = vi.fn(() => result);
+  // 타입을 sendBeacon 으로 못박아야 mock.calls 에서 인자를 꺼낼 때 타입이 산다.
+  const beacon = vi.fn<typeof navigator.sendBeacon>(() => result);
   Object.defineProperty(navigator, 'sendBeacon', {
     value: beacon,
     configurable: true,
@@ -26,8 +27,8 @@ function stubBeacon(result: boolean) {
 
 /** beacon 이 실제로 실어 보낸 JSON. Blob 은 async 로만 읽힌다. */
 async function sentPayload(beacon: ReturnType<typeof stubBeacon>) {
-  const blob = beacon.mock.calls[0]?.[1] as unknown as Blob;
-  return JSON.parse(await blob.text());
+  const [, data] = beacon.mock.calls[0];
+  return JSON.parse(await (data as Blob).text());
 }
 
 describe('코어 유입 계측', () => {
@@ -58,14 +59,15 @@ describe('코어 유입 계측', () => {
 
   it('beacon 이 큐에 못 넣으면(false) fetch 로 한 번 더 시도한다', () => {
     const beacon = stubBeacon(false);
-    const fetchMock = vi.fn(() => Promise.resolve(new Response()));
+    const fetchMock = vi.fn<typeof fetch>(() => Promise.resolve(new Response()));
     vi.stubGlobal('fetch', fetchMock);
 
     trackCore();
 
     expect(beacon).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock.mock.calls[0][0]).toContain('script.google.com');
+    const [url] = fetchMock.mock.calls[0];
+    expect(String(url)).toContain('script.google.com');
   });
 
   it('기록이 실패해도 acttub 은 열린다', () => {

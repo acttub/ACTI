@@ -17,7 +17,11 @@
 .story-canvas {
   width: 540px;
   height: 960px;
-  padding: 56px 40px 48px;
+  /* 인스타 스토리는 위아래 각 250px(1080x1920 기준)을 자기 UI가 덮는다 — 위엔 프로필·진행바,
+     아래엔 메시지 보내기 바. 여백이 56/48px일 때는 브랜드 표기도 하단 CTA도 그 안에 들어가
+     보는 사람에게 안 보였다. 여백을 키워 전부 안전영역 안으로 넣는다(1x 기준 132/140px =
+     2x 264/280px). 가운데가 비어 있어 콘텐츠가 밀리지 않는다 — 16개 유형 전수 확인함. */
+  padding: 132px 40px 140px;
   box-sizing: border-box;
   background:
     radial-gradient(at top right, rgba(255, 224, 130, 0.45) 0%, transparent 50%),
@@ -138,17 +142,24 @@
   margin-top: 20px;
   border-top: 1.5px solid rgba(0, 0, 0, 0.08);
 }
-.story-canvas__cta-url {
-  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
-  font-style: italic;
-  font-size: 32px;
-  font-weight: 800;
+.story-canvas__cta-sticker {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 13px 26px;
+  border-radius: 999px;
+  background: #FFFFFF;
   color: #191F28;
-  letter-spacing: 0.005em;
-  line-height: 1.1;
+  font-size: 23px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.13);
+}
+.story-canvas__cta-ico {
+  display: block;
 }
 .story-canvas__cta-sub {
-  margin-top: 6px;
+  margin-top: 12px;
   font-size: 13px;
   color: #666;
   font-weight: 600;

@@ -13,7 +13,7 @@ import PrimaryButton from '../components/PrimaryButton';
 import SecondaryButton from '../components/SecondaryButton';
 import ShareActionButton from '../components/ShareActionButton';
 import ActtubCTA from '../components/ActtubCTA';
-import ShareSuccessModal from '../components/ShareSuccessModal';
+import StoryShareGuideModal from '../components/StoryShareGuideModal';
 import StoryCaptureCanvas from '../components/StoryCaptureCanvas';
 import BottomCTA from '../components/BottomCTA';
 import Toast from '../components/Toast';
@@ -26,8 +26,9 @@ import {
   canShareImageFile,
   copyResultUrl,
   getSiteUrl,
+  renderCaptureBlob,
   saveCaptureAsImage,
-  shareCaptureToInstagram,
+  shareBlobToInstagram,
 } from '../lib/share';
 import { ensureKakaoReady, shareToKakao, isKakaoConfigured } from '../lib/kakao';
 import { trackResultAction } from '../lib/analytics';
@@ -55,6 +56,7 @@ export default function ResultPage() {
   const navigate = useNavigate();
   const myCode = useMemo(() => getMyTypeCode(), []);
   const storyRef = useRef<HTMLElement>(null);
+  const storyCapturePromiseRef = useRef<Promise<Blob> | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [canShareStory, setCanShareStory] = useState(true);
@@ -89,24 +91,64 @@ export default function ResultPage() {
     navigate('/quiz', { replace: true });
   };
 
-  const handleInstagramShare = async () => {
+  const filename = `acti-${type.code}.png`;
+  const shareText = `${type.code} ${type.name} — ${storyShareUrl}`;
+
+  const handleInstagramSave = async () => {
     if (!storyRef.current) return;
     // 캐릭터 PNG가 로드되기 전에 캡처하면 흰 화면이 나옴 — 명시적으로 기다림
     await waitForCaptureImages(storyRef.current);
+    await saveCaptureAsImage(storyRef.current, filename);
+    trackResultAction('save_image', type.code);
+    showToast('이미지를 저장했어요');
+  };
 
-    const filename = `acti-${type.code}.png`;
-    if (!canShareStory) {
-      await saveCaptureAsImage(storyRef.current, filename);
-      trackResultAction('save_image', type.code);
-      showToast('이미지를 저장했어요');
-      return;
+  const handleStoryGuideOpen = () => {
+    // 제스처가 살아 있는 지금 복사해야 iOS Safari 가 허용한다 — 앞에 await 를 두지 않는다.
+    // 인앱 브라우저엔 clipboard 가 없을 수 있고, 여기서 터지면 공유 자체가 막힌다.
+    // 복사가 실패해도 흐름은 계속 — 모달의 복사 버튼에서 다시 시도할 수 있다.
+    try {
+      void navigator.clipboard?.writeText(storyShareUrl)?.catch(() => {});
+    } catch {
+      // clipboard 미지원
     }
 
-    const shareText = `${type.code} ${type.name} — ${storyShareUrl}`;
-    const result = await shareCaptureToInstagram(storyRef.current, filename, shareText);
-    if (result === 'shared') {
-      trackResultAction('instagram_story', type.code);
-      setShareModalOpen(true);
+    const node = storyRef.current;
+    if (!node) return;
+
+    const capturePromise = waitForCaptureImages(node).then(() =>
+      renderCaptureBlob(node)
+    );
+    void capturePromise.catch(() => {});
+    storyCapturePromiseRef.current = capturePromise;
+    setShareModalOpen(true);
+  };
+
+  const handleStoryShareConfirm = async () => {
+    const capturePromise = storyCapturePromiseRef.current;
+    const node = storyRef.current;
+    if (!capturePromise || !node) return;
+
+    setShareModalOpen(false);
+    try {
+      const blob = await capturePromise;
+      const result = await shareBlobToInstagram(blob, filename, shareText);
+      if (result === 'shared') {
+        trackResultAction('instagram_story', type.code);
+      }
+    } catch (error) {
+      console.error('Story share failed', error);
+      try {
+        await saveCaptureAsImage(node, filename);
+        trackResultAction('save_image', type.code);
+        showToast('공유가 안 돼서 이미지로 저장했어요');
+      } catch (saveError) {
+        // 저장까지 실패했는데 "저장했어요"라고 하면 거짓말이 된다.
+        console.error('Story image fallback failed', saveError);
+        showToast('공유가 안 됐어요. 잠시 뒤 다시 해주세요');
+      }
+    } finally {
+      storyCapturePromiseRef.current = null;
     }
   };
 
@@ -203,7 +245,7 @@ export default function ResultPage() {
                 type="instagram"
                 icon={Camera}
                 label={canShareStory ? '스토리' : '이미지 저장'}
-                onAction={handleInstagramShare}
+                onAction={canShareStory ? handleStoryGuideOpen : handleInstagramSave}
               />
               {isKakaoConfigured && (
                 <ShareActionButton
@@ -257,9 +299,13 @@ export default function ResultPage() {
       {toast && <Toast message={toast} />}
 
       {shareModalOpen && (
-        <ShareSuccessModal
+        <StoryShareGuideModal
           url={storyShareUrl}
-          onClose={() => setShareModalOpen(false)}
+          onConfirm={handleStoryShareConfirm}
+          onClose={() => {
+            storyCapturePromiseRef.current = null;
+            setShareModalOpen(false);
+          }}
         />
       )}
 

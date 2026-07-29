@@ -74,19 +74,24 @@ export function canShareImageFile(): boolean {
   }
 }
 
-/**
- * 인스타 스토리(또는 OS 공유시트)로 캡처 카드 보내기.
- * 모바일 전용 — 호출 전에 canShareImageFile() 로 환경 확인할 것.
- */
-export async function shareCaptureToInstagram(
-  node: HTMLElement,
-  filename: string,
-  shareText: string
-): Promise<InstagramShareResult> {
+/** CaptureCard DOM을 공유용 PNG blob으로 렌더링. */
+export async function renderCaptureBlob(node: HTMLElement): Promise<Blob> {
   const blob = await toBlob(node, PNG_OPTIONS);
   if (!blob) {
     throw new Error('Failed to render capture as image');
   }
+  return blob;
+}
+
+/**
+ * 미리 렌더링한 PNG blob을 인스타 스토리(또는 OS 공유시트)로 보냄.
+ * 모바일 전용 — 호출 전에 canShareImageFile() 로 환경 확인할 것.
+ */
+export async function shareBlobToInstagram(
+  blob: Blob,
+  filename: string,
+  shareText: string
+): Promise<InstagramShareResult> {
   const file = new File([blob], filename, { type: 'image/png' });
 
   try {
@@ -98,6 +103,19 @@ export async function shareCaptureToInstagram(
     }
     throw err;
   }
+}
+
+/**
+ * 인스타 스토리(또는 OS 공유시트)로 캡처 카드 보내기.
+ * 모바일 전용 — 호출 전에 canShareImageFile() 로 환경 확인할 것.
+ */
+export async function shareCaptureToInstagram(
+  node: HTMLElement,
+  filename: string,
+  shareText: string
+): Promise<InstagramShareResult> {
+  const blob = await renderCaptureBlob(node);
+  return shareBlobToInstagram(blob, filename, shareText);
 }
 
 /** 결과 URL을 클립보드에 복사. */

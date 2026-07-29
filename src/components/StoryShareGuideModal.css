@@ -53,16 +53,23 @@
 }
 
 .share-modal__body {
-  margin: 0 0 var(--space-4);
+  margin: 0 0 var(--space-3);
   font-size: var(--text-sm);
   color: var(--text-secondary);
   line-height: 1.6;
   text-align: center;
 }
 
-.share-modal__body strong {
-  color: var(--text-default);
-  font-weight: var(--fw-bold);
+.share-modal__steps {
+  margin: 0 0 var(--space-4);
+  padding-left: var(--space-5);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.share-modal__steps li + li {
+  margin-top: var(--space-1);
 }
 
 .share-modal__url {
@@ -124,6 +131,26 @@
 
 .share-modal__done:hover {
   opacity: 0.9;
+}
+
+.share-modal__later {
+  width: 100%;
+  min-height: 44px;
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--fw-bold);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.share-modal__later:hover {
+  background: var(--gray-50);
 }
 
 @keyframes share-modal-fade {

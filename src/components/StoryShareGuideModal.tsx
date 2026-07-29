@@ -1,20 +1,16 @@
-/**
- * ShareSuccessModal — 인스타 스토리 공유 후 안내 모달.
- *
- * 인스타는 외부 앱에서 자동으로 Link Sticker를 박지 못해서, 사용자가
- * 스토리 편집 화면에서 직접 추가해야 한다. 그 동선을 안내하는 모달.
- */
+/** StoryShareGuideModal — 인스타 스토리 공유 전 링크 스티커 안내 모달. */
 
 import { useState } from 'react';
 import { X, Copy, Check } from 'lucide-react';
-import './ShareSuccessModal.css';
+import './StoryShareGuideModal.css';
 
 type Props = {
   url: string;
+  onConfirm: () => Promise<void> | void;
   onClose: () => void;
 };
 
-export default function ShareSuccessModal({ url, onClose }: Props) {
+export default function StoryShareGuideModal({ url, onConfirm, onClose }: Props) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -33,6 +29,7 @@ export default function ShareSuccessModal({ url, onClose }: Props) {
         className="share-modal"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
+        aria-modal="true"
         aria-labelledby="share-modal-title"
       >
         <button
@@ -45,12 +42,16 @@ export default function ShareSuccessModal({ url, onClose }: Props) {
         </button>
 
         <h3 id="share-modal-title" className="share-modal__title">
-          스토리에 올렸나요?
+          링크를 복사해뒀어요
         </h3>
         <p className="share-modal__body">
-          편집 화면에서 <strong>스티커 → 🔗 링크</strong> 를 눌러서 아래 URL을 붙여주세요.
-          친구가 스토리를 탭하면 결과 페이지로 바로 들어올 수 있어요.
+          스토리에 링크를 붙여야 친구가 탭해서 들어올 수 있어요.
         </p>
+        <ol className="share-modal__steps">
+          <li>다음 화면에서 인스타그램 스토리를 고르세요</li>
+          <li>편집 화면에서 스티커 → 🔗 링크 를 누르세요</li>
+          <li>붙여넣기 하면 끝이에요</li>
+        </ol>
 
         <div className="share-modal__url">
           <span className="share-modal__url-text">{url}</span>
@@ -65,8 +66,11 @@ export default function ShareSuccessModal({ url, onClose }: Props) {
           </button>
         </div>
 
-        <button type="button" className="share-modal__done" onClick={onClose}>
-          확인
+        <button type="button" className="share-modal__done" onClick={onConfirm}>
+          스토리로 보내기
+        </button>
+        <button type="button" className="share-modal__later" onClick={onClose}>
+          나중에 할게요
         </button>
       </div>
     </div>

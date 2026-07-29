@@ -111,7 +111,9 @@ export default function ResultPage() {
     await waitForCaptureImages(storyRef.current);
     await saveCaptureAsImage(storyRef.current, filename);
     trackResultAction('save_image', type.code);
-    showToast('이미지를 저장했어요');
+    // 이 경로는 공유시트가 없는 환경(주로 데스크탑)에서만 온다. 왜 저장만 되는지
+    // 안 알려주면 "공유가 안 된다"로 읽힌다 — 실제로 그렇게 헷갈렸다.
+    showToast('이미지를 저장했어요 — 스토리 공유는 폰에서 돼요');
   };
 
   const handleStoryGuideOpen = () => {

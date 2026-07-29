@@ -128,7 +128,7 @@ describe('ResultPage sharing', () => {
       );
     });
     expect(analyticsMocks.trackResultAction).toHaveBeenCalledWith('save_image', 'MINB');
-    expect(screen.getByText('이미지를 저장했어요')).toBeInTheDocument();
+    expect(screen.getByText('이미지를 저장했어요 — 스토리 공유는 폰에서 돼요')).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(shareMocks.renderCaptureBlob).not.toHaveBeenCalled();
     expect(shareMocks.shareBlobToInstagram).not.toHaveBeenCalled();
@@ -377,7 +377,7 @@ describe('ResultPage sharing', () => {
         'acti-MINB.png'
       );
     });
-    expect(await screen.findByText('이미지를 저장했어요')).toBeInTheDocument();
+    expect(await screen.findByText('이미지를 저장했어요 — 스토리 공유는 폰에서 돼요')).toBeInTheDocument();
   });
 
   it('still opens the guide when the browser has no clipboard API', async () => {

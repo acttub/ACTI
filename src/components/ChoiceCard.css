@@ -65,6 +65,19 @@
   letter-spacing: -0.005em;
 }
 
+/* 폰에서는 라벨이 1줄인 선택지(버튼 76px)와 2줄인 선택지(85px)가 섞여서, 문항마다
+   버튼 위치가 최대 45px까지 어긋났다(실측). 2줄치 높이를 미리 잡아 전부 같은 높이로
+   만든다. flex 아이템이라 min-height가 먹고, 1줄일 때 글자가 위로 붙지 않게
+   안에서 세로 가운데 정렬한다. 값은 line-height 1.45 × 2줄.
+   600px 이상에서는 모든 라벨이 1줄이라 예약이 필요 없다. */
+@media (max-width: 599.98px) {
+  .choice__label {
+    min-height: 2.9em;
+    display: flex;
+    align-items: center;
+  }
+}
+
 .choice__check {
   display: inline-flex;
   align-items: center;

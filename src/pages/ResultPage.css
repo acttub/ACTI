@@ -133,6 +133,13 @@
   gap: var(--space-2);
 }
 
+.page-result__share-hint {
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-xs);
+  line-height: var(--lh-xs);
+  color: var(--text-muted);
+}
+
 .page-result__bottom-pad {
   height: var(--space-16);
 }

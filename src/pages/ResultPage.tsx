@@ -13,7 +13,6 @@ import PrimaryButton from '../components/PrimaryButton';
 import SecondaryButton from '../components/SecondaryButton';
 import ShareActionButton from '../components/ShareActionButton';
 import ActtubCTA from '../components/ActtubCTA';
-import StoryShareGuideModal from '../components/StoryShareGuideModal';
 import StoryCaptureCanvas from '../components/StoryCaptureCanvas';
 import BottomCTA from '../components/BottomCTA';
 import Toast from '../components/Toast';
@@ -26,9 +25,8 @@ import {
   canShareImageFile,
   copyResultUrl,
   getSiteUrl,
-  renderCaptureBlob,
   saveCaptureAsImage,
-  shareBlobToInstagram,
+  shareCaptureToInstagram,
 } from '../lib/share';
 import { ensureKakaoReady, shareToKakao, isKakaoConfigured } from '../lib/kakao';
 import { trackResultAction } from '../lib/analytics';
@@ -66,10 +64,7 @@ export default function ResultPage() {
   const navigate = useNavigate();
   const myCode = useMemo(() => getMyTypeCode(), []);
   const storyRef = useRef<HTMLElement>(null);
-  const storyCapturePromiseRef = useRef<Promise<Blob> | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [shareModalOpen, setShareModalOpen] = useState(false);
-  const [storyLinkCopied, setStoryLinkCopied] = useState(false);
   const [canShareStory, setCanShareStory] = useState(true);
 
   useEffect(() => {
@@ -116,15 +111,13 @@ export default function ResultPage() {
     showToast('이미지를 저장했어요 — 스토리 공유는 폰에서 돼요');
   };
 
-  const handleStoryGuideOpen = () => {
+  const handleStoryShare = async () => {
     // 제스처가 살아 있는 지금 복사해야 iOS Safari 가 허용한다 — 앞에 await 를 두지 않는다.
     // 인앱 브라우저엔 clipboard 가 없을 수 있고, 여기서 터지면 공유 자체가 막힌다.
-    // 복사가 실패해도 흐름은 계속 — 모달이 "복사 안 됨" 상태로 직접 복사를 안내한다.
-    setStoryLinkCopied(false);
+    // 복사가 실패해도 공유 흐름은 계속한다.
     try {
       void navigator.clipboard
         ?.writeText(storyShareUrl)
-        ?.then(() => setStoryLinkCopied(true))
         ?.catch(() => {});
     } catch {
       // clipboard 미지원
@@ -133,23 +126,10 @@ export default function ResultPage() {
     const node = storyRef.current;
     if (!node) return;
 
-    const capturePromise = waitForCaptureImages(node).then(() =>
-      renderCaptureBlob(node)
-    );
-    void capturePromise.catch(() => {});
-    storyCapturePromiseRef.current = capturePromise;
-    setShareModalOpen(true);
-  };
-
-  const handleStoryShareConfirm = async () => {
-    const capturePromise = storyCapturePromiseRef.current;
-    const node = storyRef.current;
-    if (!capturePromise || !node) return;
-
-    setShareModalOpen(false);
     try {
-      const blob = await capturePromise;
-      const result = await shareBlobToInstagram(blob, filename, shareText);
+      // 복사 → 이미지 대기 → 캡처 → navigator.share 순서를 유지한다.
+      await waitForCaptureImages(node);
+      const result = await shareCaptureToInstagram(node, filename, shareText);
       if (result === 'shared') {
         trackResultAction('instagram_story', type.code);
       }
@@ -164,8 +144,6 @@ export default function ResultPage() {
         console.error('Story image fallback failed', saveError);
         showToast('공유가 안 됐어요. 잠시 뒤 다시 해주세요');
       }
-    } finally {
-      storyCapturePromiseRef.current = null;
     }
   };
 
@@ -262,7 +240,7 @@ export default function ResultPage() {
                 type="instagram"
                 icon={Camera}
                 label={canShareStory ? '스토리' : '이미지 저장'}
-                onAction={canShareStory ? handleStoryGuideOpen : handleInstagramSave}
+                onAction={canShareStory ? handleStoryShare : handleInstagramSave}
               />
               {isKakaoConfigured && (
                 <ShareActionButton
@@ -279,6 +257,11 @@ export default function ResultPage() {
                 onAction={handleCopyLink}
               />
             </div>
+            {canShareStory && (
+              <p className="page-result__share-hint">
+                스토리에 올릴 땐 스티커 → 🔗 링크 를 붙여주세요. 링크는 복사해둘게요.
+              </p>
+            )}
           </section>
         )}
 
@@ -314,18 +297,6 @@ export default function ResultPage() {
       </BottomCTA>
 
       {toast && <Toast message={toast} />}
-
-      {shareModalOpen && (
-        <StoryShareGuideModal
-          url={storyShareUrl}
-          copied={storyLinkCopied}
-          onConfirm={handleStoryShareConfirm}
-          onClose={() => {
-            storyCapturePromiseRef.current = null;
-            setShareModalOpen(false);
-          }}
-        />
-      )}
 
       {!isRecipient && <StoryCaptureCanvas ref={storyRef} type={type} />}
     </main>

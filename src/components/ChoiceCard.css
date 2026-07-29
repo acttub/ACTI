@@ -78,17 +78,9 @@
   }
 }
 
-.choice__check {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  /* 흰 체크 아이콘을 얹는 면이라 primary-500(4.08:1, AA 미달) 대신 primary-600 */
-  background: var(--primary-600);
-  color: var(--white);
+/* 선택 표시는 왼쪽 아이콘 칸 안에서 글리프만 바뀐다 — 폭이 변하지 않아야
+   라벨 줄 수가 그대로이고 버튼 위치가 안 흔들린다. 자세한 이유는 ChoiceCard.tsx 주석. */
+.choice__check-mark {
   animation: choice-pop var(--duration-base) var(--ease-out);
 }
 

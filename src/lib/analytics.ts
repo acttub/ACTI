@@ -32,6 +32,9 @@ let lastTrackedPath: string | null = null;
 export function initAnalytics(): void {
   const measurementId = GA_MEASUREMENT_ID;
   if (!measurementId) return;
+  // 로컬·프리뷰에서 새로고침한 것까지 실서비스 통계에 쌓이면 "몇 명이 왔나"를 못 믿는다.
+  // 유입 기록 beacon(acttub.ts)과 형제 서브프로젝트 5개가 쓰는 것과 같은 가드다.
+  if (!/(^|\.)acttub\.com$/.test(location.hostname)) return;
 
   const existingScript = document.querySelector(
     `script[src="https://www.googletagmanager.com/gtag/js?id=${measurementId}"]`

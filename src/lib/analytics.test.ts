@@ -1,3 +1,13 @@
+/**
+ * GA 계측의 정상 경로.
+ *
+ * 이 파일은 실서비스 호스트를 흉내낸다 — 로컬에서 새로고침한 것을 걸러내는 가드가 있어서,
+ * jsdom 기본 주소(localhost)로 두면 아래 테스트가 전부 통과하지 못한다.
+ * 가드 자체(로컬에서 안 뜨는지)는 analytics.guard.test.ts 가 본다.
+ *
+ * @vitest-environment-options { "url": "https://acti.acttub.com/" }
+ */
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 async function loadAnalytics() {
@@ -67,7 +77,7 @@ describe('analytics', () => {
       'page_view',
       expect.objectContaining({
         page_path: '/result/MINB',
-        page_location: 'http://localhost:3000/result/MINB',
+        page_location: 'https://acti.acttub.com/result/MINB',
       }),
     ]);
   });
@@ -84,7 +94,7 @@ describe('analytics', () => {
       'page_view',
       expect.objectContaining({
         page_path: '/result/MINB',
-        page_location: 'http://localhost:3000/result/MINB',
+        page_location: 'https://acti.acttub.com/result/MINB',
       }),
     ]);
   });
@@ -147,7 +157,7 @@ describe('analytics', () => {
       'page_view',
       expect.objectContaining({
         page_path: '/quiz',
-        page_location: 'http://localhost:3000/quiz',
+        page_location: 'https://acti.acttub.com/quiz',
       }),
     ]);
   });

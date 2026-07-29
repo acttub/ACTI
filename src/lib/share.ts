@@ -8,6 +8,24 @@ import type { TypeCode } from '../content/schema';
 /** 서브도메인 루트(acti.acttub.com)에 마운트하므로 prefix가 없다. */
 export const BASE_PATH = '';
 
+export type ShareChannel = 'story' | 'kakao' | 'link';
+
+const SHARE_SOURCE: Record<ShareChannel, string> = {
+  story: 'acti_story',
+  kakao: 'acti_kakao',
+  link: 'acti_link',
+};
+
+/** 채널 출처만 붙인 공유용 결과 URL. */
+export function buildShareUrl(
+  code: TypeCode,
+  channel: ShareChannel,
+  siteUrl = getSiteUrl()
+): string {
+  const baseUrl = siteUrl.replace(/\/+$/, '');
+  return `${baseUrl}${BASE_PATH}/result/${code}?utm_source=${SHARE_SOURCE[channel]}`;
+}
+
 const PNG_OPTIONS = {
   cacheBust: true,
   pixelRatio: 2,
@@ -84,7 +102,7 @@ export async function shareCaptureToInstagram(
 
 /** 결과 URL을 클립보드에 복사. */
 export async function copyResultUrl(code: TypeCode): Promise<void> {
-  const url = `${window.location.origin}${BASE_PATH}/result/${code}`;
+  const url = buildShareUrl(code, 'link');
   if (navigator.clipboard?.writeText) {
     await navigator.clipboard.writeText(url);
     return;

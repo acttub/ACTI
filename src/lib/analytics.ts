@@ -6,11 +6,17 @@ type GtagCommand = [command: string, ...args: unknown[]];
  * 결과 페이지의 사용자 액션. 발사 시점은 액션마다 다름:
  * - `acttub_cta`: acttub 이동 버튼 클릭 시 (의도) — 새 탭 이동이라 도착은 알 수 없음
  * - `instagram_story`: Web Share API가 `'shared'` 반환 시 (확정)
+ * - `save_image`: 이미지 다운로드를 시작한 뒤 (확정)
  * - `copy_link`: 클립보드 쓰기 성공 후 (확정)
  * - `kakao_share`: Kakao SDK 호출 후 (의도) — SDK가 완료 콜백을 제공하지 않아
  *   팝업 오픈 = 추적. 사용자가 팝업을 닫아도 이벤트는 발사됨.
  */
-export type ResultAction = 'acttub_cta' | 'instagram_story' | 'kakao_share' | 'copy_link';
+export type ResultAction =
+  | 'acttub_cta'
+  | 'instagram_story'
+  | 'save_image'
+  | 'kakao_share'
+  | 'copy_link';
 
 declare global {
   interface Window {

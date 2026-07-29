@@ -6,7 +6,7 @@
  */
 
 import type { TypeContent } from '../content/schema';
-import { BASE_PATH } from './share';
+import { BASE_PATH, buildShareUrl } from './share';
 
 type KakaoSDK = {
   isInitialized: () => boolean;
@@ -44,9 +44,10 @@ export function shareToKakao(type: TypeContent, siteUrl: string): void {
     console.warn('Kakao SDK not ready');
     return;
   }
-  const appUrl = `${siteUrl}${BASE_PATH}`;
-  const resultUrl = `${appUrl}/result/${type.code}`;
-  const imageUrl = `${appUrl}/og/${type.code}.jpg`;
+  const baseUrl = `${siteUrl.replace(/\/+$/, '')}${BASE_PATH}`;
+  const appUrl = `${baseUrl}?utm_source=acti_kakao`;
+  const resultUrl = buildShareUrl(type.code, 'kakao', siteUrl);
+  const imageUrl = `${baseUrl}/og/${type.code}.jpg`;
 
   window.Kakao.Share.sendDefault({
     objectType: 'feed',

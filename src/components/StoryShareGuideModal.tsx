@@ -6,18 +6,20 @@ import './StoryShareGuideModal.css';
 
 type Props = {
   url: string;
+  /** 모달을 열 때 자동 복사가 실제로 성공했는지. 실패했으면 사용자가 직접 복사해야 한다. */
+  copied: boolean;
   onConfirm: () => Promise<void> | void;
   onClose: () => void;
 };
 
-export default function StoryShareGuideModal({ url, onConfirm, onClose }: Props) {
-  const [copied, setCopied] = useState(false);
+export default function StoryShareGuideModal({ url, copied, onConfirm, onClose }: Props) {
+  const [justCopied, setJustCopied] = useState(false);
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(url);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1500);
+      setJustCopied(true);
+      window.setTimeout(() => setJustCopied(false), 1500);
     } catch {
       // ignore — 토스트 띄우기엔 부담이라 조용히 실패
     }
@@ -41,11 +43,16 @@ export default function StoryShareGuideModal({ url, onConfirm, onClose }: Props)
           <X size={20} />
         </button>
 
+        {/* 자동 복사는 클립보드가 없는 인앱 브라우저에서 조용히 실패한다.
+            제목이 "복사해뒀어요"라고 단언하면 그 경우 거짓말이 되므로, 복사 여부와
+            무관하게 참인 문장을 제목에 두고 실제 상태는 아래 복사 버튼이 보여준다. */}
         <h3 id="share-modal-title" className="share-modal__title">
-          링크를 복사해뒀어요
+          스토리에 링크를 붙여주세요
         </h3>
         <p className="share-modal__body">
-          스토리에 링크를 붙여야 친구가 탭해서 들어올 수 있어요.
+          {copied
+            ? '링크는 복사해뒀어요. 붙여넣기만 하면 친구가 탭해서 들어올 수 있어요.'
+            : '아래 링크를 복사해서 붙여야 친구가 탭해서 들어올 수 있어요.'}
         </p>
         <ol className="share-modal__steps">
           <li>다음 화면에서 인스타그램 스토리를 고르세요</li>
@@ -61,8 +68,8 @@ export default function StoryShareGuideModal({ url, onConfirm, onClose }: Props)
             onClick={handleCopy}
             aria-label="URL 복사"
           >
-            {copied ? <Check size={16} strokeWidth={3} /> : <Copy size={16} />}
-            <span>{copied ? '복사됨' : '복사'}</span>
+            {justCopied || copied ? <Check size={16} strokeWidth={3} /> : <Copy size={16} />}
+            <span>{justCopied || copied ? '복사됨' : '복사'}</span>
           </button>
         </div>
 

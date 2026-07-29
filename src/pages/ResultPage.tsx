@@ -37,15 +37,25 @@ import { openActtub } from '../lib/acttub';
 import NotFoundPage from './NotFoundPage';
 import './ResultPage.css';
 
+/** 캡처 대기가 영영 안 끝나면 버튼이 로딩 상태로 죽는다 — 상한을 둔다. */
+const CAPTURE_IMAGE_TIMEOUT_MS = 5000;
+
 async function waitForCaptureImages(node: HTMLElement): Promise<void> {
   const images = node.querySelectorAll('img');
   await Promise.all(
     Array.from(images).map((img) =>
-      img.complete && img.naturalWidth > 0
+      // 이미 끝난 이미지는 성공이든 실패든(`complete && naturalWidth === 0`) 기다리지 않는다.
+      // naturalWidth 까지 보면 실패한 이미지가 이미 지나간 load/error 를 기다리다 영영 안 풀린다.
+      img.complete
         ? Promise.resolve()
         : new Promise<void>((resolve) => {
-            img.addEventListener('load', () => resolve(), { once: true });
-            img.addEventListener('error', () => resolve(), { once: true });
+            const done = () => {
+              window.clearTimeout(timeoutId);
+              resolve();
+            };
+            const timeoutId = window.setTimeout(done, CAPTURE_IMAGE_TIMEOUT_MS);
+            img.addEventListener('load', done, { once: true });
+            img.addEventListener('error', done, { once: true });
           })
     )
   );
@@ -59,6 +69,7 @@ export default function ResultPage() {
   const storyCapturePromiseRef = useRef<Promise<Blob> | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [storyLinkCopied, setStoryLinkCopied] = useState(false);
   const [canShareStory, setCanShareStory] = useState(true);
 
   useEffect(() => {
@@ -106,9 +117,13 @@ export default function ResultPage() {
   const handleStoryGuideOpen = () => {
     // 제스처가 살아 있는 지금 복사해야 iOS Safari 가 허용한다 — 앞에 await 를 두지 않는다.
     // 인앱 브라우저엔 clipboard 가 없을 수 있고, 여기서 터지면 공유 자체가 막힌다.
-    // 복사가 실패해도 흐름은 계속 — 모달의 복사 버튼에서 다시 시도할 수 있다.
+    // 복사가 실패해도 흐름은 계속 — 모달이 "복사 안 됨" 상태로 직접 복사를 안내한다.
+    setStoryLinkCopied(false);
     try {
-      void navigator.clipboard?.writeText(storyShareUrl)?.catch(() => {});
+      void navigator.clipboard
+        ?.writeText(storyShareUrl)
+        ?.then(() => setStoryLinkCopied(true))
+        ?.catch(() => {});
     } catch {
       // clipboard 미지원
     }
@@ -301,6 +316,7 @@ export default function ResultPage() {
       {shareModalOpen && (
         <StoryShareGuideModal
           url={storyShareUrl}
+          copied={storyLinkCopied}
           onConfirm={handleStoryShareConfirm}
           onClose={() => {
             storyCapturePromiseRef.current = null;

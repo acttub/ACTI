@@ -147,9 +147,10 @@ describe('ResultPage sharing', () => {
     expect(writeText).toHaveBeenCalledWith(storyUrl);
     expect(shareMocks.shareBlobToInstagram).not.toHaveBeenCalled();
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText('링크를 복사해뒀어요')).toBeInTheDocument();
+    expect(screen.getByText('스토리에 링크를 붙여주세요')).toBeInTheDocument();
+    // 이 테스트의 클립보드는 영영 안 풀린다 — 복사됐다고 단언하면 안 된다.
     expect(
-      screen.getByText('스토리에 링크를 붙여야 친구가 탭해서 들어올 수 있어요.')
+      screen.getByText('아래 링크를 복사해서 붙여야 친구가 탭해서 들어올 수 있어요.')
     ).toBeInTheDocument();
     expect(
       screen.getByText('다음 화면에서 인스타그램 스토리를 고르세요')
@@ -319,6 +320,64 @@ describe('ResultPage sharing', () => {
       'save_image',
       'MINB'
     );
+  });
+
+  it('says the link is copied only after the clipboard write actually resolves', async () => {
+    shareMocks.canShareImageFile.mockReturnValue(true);
+    installClipboard();
+    render(resultRoute());
+
+    const storyButton = await screen.findByRole('button', { name: '스토리' });
+    markStoryImageAsLoaded();
+    fireEvent.click(storyButton);
+
+    expect(
+      await screen.findByText('링크는 복사해뒀어요. 붙여넣기만 하면 친구가 탭해서 들어올 수 있어요.')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('아래 링크를 복사해서 붙여야 친구가 탭해서 들어올 수 있어요.')
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not claim the link is copied when the browser has no clipboard API', async () => {
+    shareMocks.canShareImageFile.mockReturnValue(true);
+    Reflect.deleteProperty(navigator, 'clipboard');
+    render(resultRoute());
+
+    const storyButton = await screen.findByRole('button', { name: '스토리' });
+    markStoryImageAsLoaded();
+    fireEvent.click(storyButton);
+
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(
+      screen.getByText('아래 링크를 복사해서 붙여야 친구가 탭해서 들어올 수 있어요.')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('링크는 복사해뒀어요. 붙여넣기만 하면 친구가 탭해서 들어올 수 있어요.')
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not hang when a capture image already failed to load', async () => {
+    shareMocks.canShareImageFile.mockReturnValue(false);
+    render(resultRoute());
+
+    const saveButton = await screen.findByRole('button', { name: '이미지 저장' });
+    // 이미 실패한 이미지: complete 는 true 인데 naturalWidth 는 0 이다.
+    // load/error 는 이미 지나갔으므로 그걸 기다리면 영영 안 풀린다.
+    const image = document.querySelector<HTMLImageElement>('.story-canvas__avatar');
+    Object.defineProperties(image!, {
+      complete: { value: true, configurable: true },
+      naturalWidth: { value: 0, configurable: true },
+    });
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(shareMocks.saveCaptureAsImage).toHaveBeenCalledWith(
+        document.querySelector('.story-canvas'),
+        'acti-MINB.png'
+      );
+    });
+    expect(await screen.findByText('이미지를 저장했어요')).toBeInTheDocument();
   });
 
   it('still opens the guide when the browser has no clipboard API', async () => {

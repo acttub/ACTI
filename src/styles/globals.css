@@ -5,6 +5,13 @@
    - BottomCTA 패턴, safe-area 대응
    ===================================================== */
 
+/* 3단 티어(phone/tablet/desktop) 폭·여백 baseline. brand/DESIGN.md 정본에서
+   생성된 사본이라 직접 고치지 않는다 — tools/subproject-sync-brand.py로만 갱신.
+   --content-max/--gutter를 여기서 바로 쓰지 않고 아래 --container-max/
+   --container-gutter로 한 번 감싸는 이유: 기존 컴포넌트 CSS 전부가 이미
+   그 이름을 참조하고 있어서, 파일마다 고치지 않고 값만 갈아끼울 수 있다. */
+@import "../brand/responsive-base.css";
+
 :root {
   /* ---------- Base: Neutral (Toss 그레이 스케일) ---------- */
   --gray-900: #191F28;   /* 본문 primary */
@@ -130,9 +137,12 @@
   --border-subtle:  var(--gray-100);
   --border-focus:   var(--primary-500);
 
-  /* ---------- Container (Toss는 모바일 폼팩터에 최적) ---------- */
-  --container-max: 480px;
-  --container-gutter: 20px;   /* Toss 표준 좌우 20px */
+  /* ---------- Container (3단 티어에 맞춰 폭이 늘어난다) ----------
+     phone(0~599)에서는 --content-max가 100%라 실질적으로 이전 480px 고정과
+     같다(실기기 폭이 480 미만이라 어차피 안 걸리던 상한이었다). tablet 600px+
+     부터 560px, desktop 1024px+부터 760px로 넓어진다 — brand/DESIGN.md 정본. */
+  --container-max: var(--content-max);
+  --container-gutter: var(--gutter);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
 }

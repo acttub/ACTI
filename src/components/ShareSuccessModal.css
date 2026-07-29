@@ -111,7 +111,7 @@
   width: 100%;
   min-height: 48px;
   padding: var(--space-3);
-  background: var(--primary-500, #0A79FB);
+  background: var(--primary-600, #0355F1);
   color: #FFFFFF;
   border: none;
   border-radius: var(--radius-md);

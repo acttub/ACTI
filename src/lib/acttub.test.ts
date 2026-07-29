@@ -39,6 +39,7 @@ describe('코어 유입 계측', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     Reflect.deleteProperty(navigator, 'sendBeacon');
+    window.sessionStorage.removeItem('acti_upstream');
   });
 
   it('acttub 으로 나가는 클릭을 채널 이름과 함께 보낸다', async () => {
@@ -51,10 +52,30 @@ describe('코어 유입 계측', () => {
     expect(payload.type).toBe('click');
     expect(payload.from).toBe('acti');
     expect(payload.ref).toBe('https://acti.acttub.com');
+    // 원 채널을 못 잡았을 때는 direct로 남는다(이 테스트 환경엔 utm_source도
+    // referrer도 없다).
+    expect(payload.upstream).toBe('direct');
     // 사용자가 무엇을 골랐는지는 싣지 않는다 — 나갔다는 사실과 목적지 파라미터뿐이다.
     expect(Object.keys(payload).sort()).toEqual(
-      ['at', 'click_id', 'from', 'ref', 'src', 'type'].sort()
+      ['at', 'click_id', 'from', 'ref', 'src', 'type', 'upstream'].sort()
     );
+  });
+
+  it('링크·referrer로 잡아둔 원 채널을 payload와 코어 링크 양쪽에 싣는다', async () => {
+    window.sessionStorage.setItem('acti_upstream', 'linkhub');
+    const beacon = stubBeacon(true);
+
+    trackCore();
+    openActtub();
+
+    const payload = await sentPayload(beacon);
+    expect(payload.upstream).toBe('linkhub');
+
+    // 기존 utm_source=acti는 덮어쓰지 않고 utm_term만 더한다.
+    const [openedUrl] = vi.mocked(window.open).mock.calls[0];
+    const params = new URL(String(openedUrl)).searchParams;
+    expect(params.get('utm_source')).toBe('acti');
+    expect(params.get('utm_term')).toBe('linkhub');
   });
 
   it('beacon 이 큐에 못 넣으면(false) fetch 로 한 번 더 시도한다', () => {

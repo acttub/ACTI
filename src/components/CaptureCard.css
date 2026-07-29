@@ -116,7 +116,8 @@
   min-width: 28px;
   height: 28px;
   padding: 0 8px;
-  background: var(--primary-500);
+  /* 흰 글자를 얹는 면이라 primary-500(4.08:1, AA 미달) 대신 primary-600을 쓴다 */
+  background: var(--primary-600);
   color: var(--white);
   border-radius: var(--radius-pill);
   font-family: var(--font-mono);

@@ -24,11 +24,13 @@
 
 /* variants */
 .btn--fill {
-  background: var(--primary-500);
+  background: var(--primary-600);
   color: var(--white);
 }
+/* 면을 primary-600으로 올리면서 hover가 base와 같아져 마우스에서 반응이 사라졌다.
+   pressed와 겹치지 않게 hover는 그 사이 단계인 primary-700으로 내린다. */
 @media (hover: hover) {
-  .btn--fill:hover { background: var(--primary-600); }
+  .btn--fill:hover { background: var(--primary-700); }
 }
 .btn--fill:active { background: var(--primary-700); transform: translateY(1px); }
 

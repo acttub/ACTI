@@ -73,7 +73,8 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: var(--primary-500);
+  /* 흰 체크 아이콘을 얹는 면이라 primary-500(4.08:1, AA 미달) 대신 primary-600 */
+  background: var(--primary-600);
   color: var(--white);
   animation: choice-pop var(--duration-base) var(--ease-out);
 }

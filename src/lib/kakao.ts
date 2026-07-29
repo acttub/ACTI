@@ -24,6 +24,10 @@ declare global {
 
 const APP_KEY = import.meta.env.VITE_KAKAO_APP_KEY as string | undefined;
 
+/** 빌드 시점에 앱 키가 있는지. 없으면 공유 버튼 자체를 화면에 그리지 않는다 —
+ *  눌러도 아무 일이 없는 버튼을 노출하는 것보다는 안 보이는 게 낫다. */
+export const isKakaoConfigured = Boolean(APP_KEY);
+
 /** 멱등 초기화. 호출 시 SDK 사용 가능 여부 반환. */
 export function ensureKakaoReady(): boolean {
   if (typeof window === 'undefined' || !window.Kakao) return false;

@@ -51,8 +51,10 @@ const StoryCaptureCanvas = forwardRef<HTMLElement, Props>(function StoryCaptureC
       </div>
 
       <footer className="story-canvas__footer">
-        <div className="story-canvas__cta-url">acttub.com</div>
-        <div className="story-canvas__cta-sub">너의 연기 결, 1분 진단</div>
+        {/* 이 카드를 보고 오는 사람이 하려는 건 이 퀴즈다. 코어(acttub.com)를 적으면
+            도착지가 어긋나고, "진단"은 제품 가드레일이 막은 판정 프레임이라 쓰지 않는다. */}
+        <div className="story-canvas__cta-url">acti.acttub.com</div>
+        <div className="story-canvas__cta-sub">1분이면 나오는 내 유형</div>
       </footer>
     </section>
     </div>

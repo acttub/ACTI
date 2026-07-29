@@ -16,16 +16,65 @@ export const ACTTUB_URL =
 const CORE_TRACK =
   'https://script.google.com/macros/s/AKfycbxmvQWyu-kslgIbVshJolG2KXV_omgT_vcUpmwJljvvYE8MkwUug-WGEhZmWUdU2ErK/exec';
 
+/* acti 로 들어온 사람의 원 채널(인스타 → link-hub → acti 같은 첫 홉)을 세션
+   동안 들고 다닌다. React Router가 /quiz, /result로 넘어가면 location.search는
+   사라지지만 sessionStorage는 남는다. */
+const UPSTREAM_KEY = 'acti_upstream';
+
+function detectUpstream(): string | null {
+  try {
+    const utmSource = new URLSearchParams(location.search).get('utm_source');
+    if (utmSource) return utmSource;
+    if (document.referrer) return new URL(document.referrer).hostname;
+  } catch {
+    // URL 파싱 실패 무시 — 원 채널을 못 구했을 뿐 이동을 막을 이유는 아니다.
+  }
+  return null;
+}
+
+/** 앱 시작 시 한 번 호출. 이미 잡아둔 값이 있으면 다시 쓰지 않는다 —
+ *  안 그러면 앱 안에서 페이지를 옮길 때마다 direct로 덮어써진다. */
+export function captureUpstream(): void {
+  try {
+    if (typeof window === 'undefined' || !window.sessionStorage) return;
+    if (window.sessionStorage.getItem(UPSTREAM_KEY)) return;
+    const upstream = detectUpstream();
+    if (upstream) window.sessionStorage.setItem(UPSTREAM_KEY, upstream);
+  } catch {
+    // private mode 등 sessionStorage 접근 실패 무시
+  }
+}
+
+function getUpstream(): string | null {
+  try {
+    if (typeof window === 'undefined' || !window.sessionStorage) return null;
+    return window.sessionStorage.getItem(UPSTREAM_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** utm_source=acti는 그대로 두고, 잡아둔 원 채널이 있으면 utm_term으로 얹는다. */
+function buildActtubUrl(): string {
+  const upstream = getUpstream();
+  if (!upstream) return ACTTUB_URL;
+  const url = new URL(ACTTUB_URL);
+  url.searchParams.set('utm_term', upstream);
+  return url.toString();
+}
+
 export function trackCore(): void {
   // 로컬·프리뷰에서 눌러본 것이 실서비스 기록에 섞이면 그때부터 숫자를 못 믿는다.
   if (!/(^|\.)acttub\.com$/.test(location.hostname)) return;
   try {
+    const url = buildActtubUrl();
     const body = JSON.stringify({
       type: 'click',
       at: new Date().toISOString(),
       from: 'acti',
-      src: ACTTUB_URL.slice(ACTTUB_URL.indexOf('?')),
+      src: url.slice(url.indexOf('?')),
       ref: location.origin,
+      upstream: getUpstream() ?? 'direct',
       click_id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
     });
     // text/plain 이어야 preflight 없이 Apps Script가 받는다.
@@ -52,5 +101,5 @@ export function openActtub(onGo?: () => void): void {
   } catch {
     // 트래킹 실패가 이동을 막지 않도록 무시
   }
-  window.open(ACTTUB_URL, '_blank', 'noopener,noreferrer');
+  window.open(buildActtubUrl(), '_blank', 'noopener,noreferrer');
 }

@@ -22,7 +22,7 @@ import { isTypeCode } from '../content/schema';
 import { getType } from '../content/types';
 import { getMyTypeCode, clearMyTypeCode } from '../lib/storage';
 import { getSiteUrl, shareCaptureToInstagram, copyResultUrl, canShareImageFile } from '../lib/share';
-import { ensureKakaoReady, shareToKakao } from '../lib/kakao';
+import { ensureKakaoReady, shareToKakao, isKakaoConfigured } from '../lib/kakao';
 import { trackResultAction } from '../lib/analytics';
 import { openActtub } from '../lib/acttub';
 
@@ -183,12 +183,14 @@ export default function ResultPage() {
                 label="스토리"
                 onAction={handleInstagramShare}
               />
-              <ShareActionButton
-                type="kakao"
-                icon={MessageCircle}
-                label="카카오톡"
-                onAction={handleKakaoShare}
-              />
+              {isKakaoConfigured && (
+                <ShareActionButton
+                  type="kakao"
+                  icon={MessageCircle}
+                  label="카카오톡"
+                  onAction={handleKakaoShare}
+                />
+              )}
               <ShareActionButton
                 type="link"
                 icon={LinkIcon}

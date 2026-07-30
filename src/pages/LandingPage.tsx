@@ -2,18 +2,24 @@
  * S1 — 랜딩 (v3: 토스 미니멀 톤 + BottomCTA + 모바일 풀폭).
  */
 
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Clock4 } from 'lucide-react';
 import PrimaryButton from '../components/PrimaryButton';
 import BottomCTA from '../components/BottomCTA';
 import CharacterAvatar from '../components/CharacterAvatar';
 import { getAllTypes } from '../content/types';
+import { trackEvent } from '../lib/acttub';
 import './LandingPage.css';
 
 export default function LandingPage() {
   const navigate = useNavigate();
   const all = getAllTypes();
   const hero = all[0]; // MINB
+
+  useEffect(() => {
+    trackEvent('landing_view');
+  }, []);
 
   return (
     <main className="page page-enter page-landing">

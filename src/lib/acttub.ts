@@ -15,6 +15,7 @@ export const ACTTUB_URL =
    시트라 채널이 한 표에 모인다. */
 const CORE_TRACK =
   'https://script.google.com/macros/s/AKfycbxmvQWyu-kslgIbVshJolG2KXV_omgT_vcUpmwJljvvYE8MkwUug-WGEhZmWUdU2ErK/exec';
+let lastTrackedResultCode: string | null = null;
 
 /* acti 로 들어온 사람의 원 채널(인스타 → link-hub → acti 같은 첫 홉)을 세션
    동안 들고 다닌다. React Router가 /quiz, /result로 넘어가면 location.search는
@@ -91,6 +92,51 @@ export function trackCore(): void {
   } catch {
     // 기록 실패가 이동을 막지 않도록 무시
   }
+}
+
+function isProductionHost(): boolean {
+  return /(^|\.)acttub\.com$/.test(location.hostname);
+}
+
+function sendToSheet(payload: Record<string, unknown>): void {
+  if (!isProductionHost()) return;
+  try {
+    const body = JSON.stringify(payload);
+    const blob = new Blob([body], { type: 'text/plain;charset=UTF-8' });
+    if (!(navigator.sendBeacon && navigator.sendBeacon(CORE_TRACK, blob))) {
+      void fetch(CORE_TRACK, {
+        method: 'POST',
+        mode: 'no-cors',
+        keepalive: true,
+        body,
+      }).catch(() => {});
+    }
+  } catch {
+    // 기록 실패가 사용자 흐름을 막지 않도록 무시
+  }
+}
+
+export function trackEvent(name: string): void {
+  if (!isProductionHost()) return;
+  sendToSheet({
+    type: 'event',
+    app: 'acti',
+    name,
+    at: new Date().toISOString(),
+  });
+}
+
+/** 같은 결과 컴포넌트의 연속 재렌더만 건너뛴다. 새 퀴즈 완주 때 reset한다. */
+export function trackResultView(code: string): void {
+  if (!isProductionHost()) return;
+  if (lastTrackedResultCode === code) return;
+  lastTrackedResultCode = code;
+  trackEvent('result_view');
+  trackEvent(`result_${code.toLowerCase()}`);
+}
+
+export function resetResultViewTracking(): void {
+  lastTrackedResultCode = null;
 }
 
 /** acttub 을 새 탭으로 연다. 트래킹이 실패해도 이동은 막지 않는다. */

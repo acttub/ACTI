@@ -9,7 +9,7 @@
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { trackCore } from './acttub';
+import { trackCore, trackEvent } from './acttub';
 
 describe('코어 유입 계측 — 실서비스 밖', () => {
   afterEach(() => {
@@ -29,6 +29,22 @@ describe('코어 유입 계측 — 실서비스 밖', () => {
 
     expect(location.hostname).toBe('localhost');
     trackCore();
+
+    expect(beacon).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('acttub.com 이 아닌 곳에서는 퍼널 이벤트도 보내지 않는다', () => {
+    const beacon = vi.fn<typeof navigator.sendBeacon>(() => true);
+    Object.defineProperty(navigator, 'sendBeacon', {
+      value: beacon,
+      configurable: true,
+      writable: true,
+    });
+    const fetchMock = vi.fn<typeof fetch>(() => Promise.resolve(new Response()));
+    vi.stubGlobal('fetch', fetchMock);
+
+    trackEvent('landing_view');
 
     expect(beacon).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();

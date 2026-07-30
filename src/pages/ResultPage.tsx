@@ -30,7 +30,7 @@ import {
 } from '../lib/share';
 import { ensureKakaoReady, shareToKakao, isKakaoConfigured } from '../lib/kakao';
 import { trackResultAction } from '../lib/analytics';
-import { openActtub } from '../lib/acttub';
+import { openActtub, trackEvent, trackResultView } from '../lib/acttub';
 
 import NotFoundPage from './NotFoundPage';
 import './ResultPage.css';
@@ -73,6 +73,11 @@ export default function ResultPage() {
     return () => window.clearTimeout(timeoutId);
   }, []);
 
+  useEffect(() => {
+    if (!rawCode || !isTypeCode(rawCode)) return;
+    trackResultView(rawCode);
+  }, [rawCode]);
+
   if (!rawCode || !isTypeCode(rawCode)) {
     return <NotFoundPage />;
   }
@@ -106,6 +111,7 @@ export default function ResultPage() {
     await waitForCaptureImages(storyRef.current);
     await saveCaptureAsImage(storyRef.current, filename);
     trackResultAction('save_image', type.code);
+    trackEvent('share_save_image');
     // 이 경로는 공유시트가 없는 환경(주로 데스크탑)에서만 온다. 왜 저장만 되는지
     // 안 알려주면 "공유가 안 된다"로 읽힌다 — 실제로 그렇게 헷갈렸다.
     showToast('이미지를 저장했어요 — 스토리 공유는 폰에서 돼요');
@@ -132,12 +138,14 @@ export default function ResultPage() {
       const result = await shareCaptureToInstagram(node, filename, shareText);
       if (result === 'shared') {
         trackResultAction('instagram_story', type.code);
+        trackEvent('share_instagram_story');
       }
     } catch (error) {
       console.error('Story share failed', error);
       try {
         await saveCaptureAsImage(node, filename);
         trackResultAction('save_image', type.code);
+        trackEvent('share_save_image');
         showToast('공유가 안 돼서 이미지로 저장했어요');
       } catch (saveError) {
         // 저장까지 실패했는데 "저장했어요"라고 하면 거짓말이 된다.
@@ -154,12 +162,19 @@ export default function ResultPage() {
     }
     shareToKakao(type, siteUrl);
     trackResultAction('kakao_share', type.code);
+    trackEvent('share_kakao_share');
   };
 
   const handleCopyLink = async () => {
     await copyResultUrl(type.code);
     trackResultAction('copy_link', type.code);
+    trackEvent('share_copy_link');
     showToast('링크가 복사됐어요');
+  };
+
+  const handleCtaClick = () => {
+    trackResultAction('acttub_cta', type.code);
+    trackEvent('cta_click');
   };
 
   return (
@@ -267,7 +282,7 @@ export default function ResultPage() {
 
         <ActtubCTA
           withButton={isRecipient}
-          onGo={() => trackResultAction('acttub_cta', type.code)}
+          onGo={handleCtaClick}
         />
 
         <SecondaryButton size="lg" fullWidth onClick={handleRetry}>
@@ -288,7 +303,7 @@ export default function ResultPage() {
           <PrimaryButton
             size="xl"
             fullWidth
-            onClick={() => openActtub(() => trackResultAction('acttub_cta', type.code))}
+            onClick={() => openActtub(handleCtaClick)}
           >
             acttub 시작하기
             <ArrowRight size={20} aria-hidden="true" />

@@ -12,7 +12,13 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { openActtub, trackCore } from './acttub';
+import {
+  openActtub,
+  resetResultViewTracking,
+  trackCore,
+  trackEvent,
+  trackResultView,
+} from './acttub';
 
 function stubBeacon(result: boolean) {
   // 타입을 sendBeacon 으로 못박아야 mock.calls 에서 인자를 꺼낼 때 타입이 산다.
@@ -31,6 +37,15 @@ async function sentPayload(beacon: ReturnType<typeof stubBeacon>) {
   return JSON.parse(await (data as Blob).text());
 }
 
+async function sentEventNames(beacon: ReturnType<typeof stubBeacon>) {
+  return Promise.all(
+    beacon.mock.calls.map(async ([, data]) => {
+      const payload = JSON.parse(await (data as Blob).text());
+      return payload.name;
+    })
+  );
+}
+
 describe('코어 유입 계측', () => {
   beforeEach(() => {
     vi.stubGlobal('open', vi.fn());
@@ -40,6 +55,7 @@ describe('코어 유입 계측', () => {
     vi.unstubAllGlobals();
     Reflect.deleteProperty(navigator, 'sendBeacon');
     window.sessionStorage.removeItem('acti_upstream');
+    resetResultViewTracking();
   });
 
   it('acttub 으로 나가는 클릭을 채널 이름과 함께 보낸다', async () => {
@@ -89,6 +105,46 @@ describe('코어 유입 계측', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url] = fetchMock.mock.calls[0];
     expect(String(url)).toContain('script.google.com');
+  });
+
+  it('퍼널 이벤트는 발생할 때마다 최소 payload로 보낸다', async () => {
+    const beacon = stubBeacon(true);
+
+    trackEvent('landing_view');
+    trackEvent('landing_view');
+
+    expect(beacon).toHaveBeenCalledTimes(2);
+    const payload = await sentPayload(beacon);
+    expect(payload).toMatchObject({
+      type: 'event',
+      app: 'acti',
+      name: 'landing_view',
+    });
+    expect(payload.at).toEqual(expect.any(String));
+    expect(Object.keys(payload).sort()).toEqual(['app', 'at', 'name', 'type']);
+  });
+
+  it('같은 결과의 연속 재렌더는 건너뛰고 새 퀴즈 결과는 다시 보낸다', async () => {
+    const beacon = stubBeacon(true);
+
+    trackResultView('MINB');
+    trackResultView('MINB');
+
+    // result_view + result_minb 한 쌍만 전송된다.
+    expect(beacon).toHaveBeenCalledTimes(2);
+    expect(await sentEventNames(beacon)).toEqual(['result_view', 'result_minb']);
+
+    resetResultViewTracking();
+    trackResultView('MINB');
+
+    // 같은 결과 코드여도 새 퀴즈에서 만든 결과면 한 쌍을 다시 전송한다.
+    expect(beacon).toHaveBeenCalledTimes(4);
+    expect(await sentEventNames(beacon)).toEqual([
+      'result_view',
+      'result_minb',
+      'result_view',
+      'result_minb',
+    ]);
   });
 
   it('기록이 실패해도 acttub 은 열린다', () => {

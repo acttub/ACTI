@@ -23,6 +23,12 @@ const analyticsMocks = vi.hoisted(() => ({
   trackResultAction: vi.fn<(action: string, resultCode: string) => void>(),
 }));
 
+const acttubMocks = vi.hoisted(() => ({
+  openActtub: vi.fn(),
+  trackEvent: vi.fn<(name: string) => void>(),
+  trackResultView: vi.fn<(code: string) => void>(),
+}));
+
 vi.mock('../lib/share', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/share')>();
   return {
@@ -43,9 +49,7 @@ vi.mock('../lib/kakao', () => ({
   shareToKakao: vi.fn(),
 }));
 
-vi.mock('../lib/acttub', () => ({
-  openActtub: vi.fn(),
-}));
+vi.mock('../lib/acttub', () => acttubMocks);
 
 import ResultPage from './ResultPage';
 
@@ -93,6 +97,9 @@ describe('ResultPage sharing', () => {
     shareMocks.saveCaptureAsImage.mockReset().mockResolvedValue();
     shareMocks.shareCaptureToInstagram.mockReset().mockResolvedValue('shared');
     analyticsMocks.trackResultAction.mockReset();
+    acttubMocks.openActtub.mockReset();
+    acttubMocks.trackEvent.mockReset();
+    acttubMocks.trackResultView.mockReset();
   });
 
   afterEach(() => {

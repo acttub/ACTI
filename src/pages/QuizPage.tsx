@@ -2,13 +2,14 @@
  * S2 — 문항 페이지 (v3: 토스 톤 + 더 큰 본문 + 진행률 진한 막대).
  */
 
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProgressBar from '../components/ProgressBar';
 import ChoiceCard from '../components/ChoiceCard';
 import { QUESTIONS } from '../content/questions';
 import { computeType } from '../lib/scoring';
 import { setMyTypeCode } from '../lib/storage';
+import { resetResultViewTracking, trackEvent } from '../lib/acttub';
 import type { Choice } from '../content/schema';
 import './QuizPage.css';
 
@@ -22,6 +23,10 @@ export default function QuizPage() {
   const question = QUESTIONS[index];
   const total = QUESTIONS.length;
 
+  useEffect(() => {
+    trackEvent('quiz_start');
+  }, []);
+
   const handleSelect = (choice: Choice) => {
     const next = answers.slice();
     next[index] = choice;
@@ -30,10 +35,12 @@ export default function QuizPage() {
     if (index < total - 1) {
       setTimeout(() => setIndex(index + 1), 240);
     } else {
+      trackEvent('quiz_complete');
       setTimeout(() => {
         const filled = next.filter((c): c is Choice => c !== null);
         const code = computeType(filled);
         setMyTypeCode(code);
+        resetResultViewTracking();
         navigate(`/result/${code}`, { replace: true });
       }, 320);
     }

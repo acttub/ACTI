@@ -22,6 +22,12 @@ let lastTrackedResultCode: string | null = null;
    사라지지만 sessionStorage는 남는다. */
 const UPSTREAM_KEY = 'acti_upstream';
 
+/* 어느 광고 소재가 가입을 만들었는지는 utm_source 하나로는 못 가린다 — 그건 채널
+   이름(instagram)일 뿐이고 소재는 인바운드의 utm_medium·utm_campaign·utm_content 에
+   있다. ACTTUB_URL 이 쓰는 슬롯을 건드리면 지금 쌓이는 통계가 끊기므로, 아무도 쓰지
+   않는 utm_id 한 칸에 그 셋을 이어 붙여 코어까지 넘긴다. */
+const AD_ID_KEY = 'acti_ad_id';
+
 function detectUpstream(): string | null {
   try {
     const utmSource = new URLSearchParams(location.search).get('utm_source');
@@ -33,6 +39,19 @@ function detectUpstream(): string | null {
   return null;
 }
 
+/** 인바운드 광고 파라미터를 한 값으로 잇는다. 하나도 없으면 null 이다. */
+function detectAdId(): string | null {
+  try {
+    const params = new URLSearchParams(location.search);
+    const parts = ['utm_medium', 'utm_campaign', 'utm_content']
+      .map((key) => params.get(key)?.trim())
+      .filter((value): value is string => Boolean(value));
+    return parts.length > 0 ? parts.join('-') : null;
+  } catch {
+    return null;
+  }
+}
+
 /** 앱 시작 시 한 번 호출. 이미 잡아둔 값이 있으면 다시 쓰지 않는다 —
  *  안 그러면 앱 안에서 페이지를 옮길 때마다 direct로 덮어써진다. */
 export function captureUpstream(): void {
@@ -41,6 +60,8 @@ export function captureUpstream(): void {
     if (window.sessionStorage.getItem(UPSTREAM_KEY)) return;
     const upstream = detectUpstream();
     if (upstream) window.sessionStorage.setItem(UPSTREAM_KEY, upstream);
+    const adId = detectAdId();
+    if (adId) window.sessionStorage.setItem(AD_ID_KEY, adId);
   } catch {
     // private mode 등 sessionStorage 접근 실패 무시
   }
@@ -55,12 +76,23 @@ function getUpstream(): string | null {
   }
 }
 
-/** utm_source=acti는 그대로 두고, 잡아둔 원 채널이 있으면 utm_term으로 얹는다. */
+function getAdId(): string | null {
+  try {
+    if (typeof window === 'undefined' || !window.sessionStorage) return null;
+    return window.sessionStorage.getItem(AD_ID_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** utm_source=acti는 그대로 두고, 잡아둔 원 채널을 utm_term, 광고 소재를 utm_id로 얹는다. */
 function buildActtubUrl(): string {
   const upstream = getUpstream();
-  if (!upstream) return ACTTUB_URL;
+  const adId = getAdId();
+  if (!upstream && !adId) return ACTTUB_URL;
   const url = new URL(ACTTUB_URL);
-  url.searchParams.set('utm_term', upstream);
+  if (upstream) url.searchParams.set('utm_term', upstream);
+  if (adId) url.searchParams.set('utm_id', adId);
   return url.toString();
 }
 

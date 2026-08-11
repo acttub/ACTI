@@ -13,6 +13,8 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  ACTTUB_URL,
+  captureUpstream,
   openActtub,
   resetResultViewTracking,
   trackCore,
@@ -55,6 +57,9 @@ describe('코어 유입 계측', () => {
     vi.unstubAllGlobals();
     Reflect.deleteProperty(navigator, 'sendBeacon');
     window.sessionStorage.removeItem('acti_upstream');
+    window.sessionStorage.removeItem('acti_ad_id');
+    // 주소를 건드린 테스트가 다음 테스트의 detect* 결과를 오염시키지 않게 되돌린다.
+    window.history.replaceState({}, '', '/result');
     resetResultViewTracking();
   });
 
@@ -92,6 +97,46 @@ describe('코어 유입 계측', () => {
     const params = new URL(String(openedUrl)).searchParams;
     expect(params.get('utm_source')).toBe('acti');
     expect(params.get('utm_term')).toBe('linkhub');
+  });
+
+  it('인바운드 광고 파라미터를 세션에 잡아둔다', () => {
+    window.history.replaceState(
+      {},
+      '',
+      '/?utm_source=instagram&utm_medium=paid&utm_campaign=acti&utm_content=2026-08-11'
+    );
+
+    captureUpstream();
+
+    expect(window.sessionStorage.getItem('acti_upstream')).toBe('instagram');
+    // utm_source 는 utm_term 이 이미 나르므로 나머지 셋만 순서대로 잇는다.
+    expect(window.sessionStorage.getItem('acti_ad_id')).toBe('paid-acti-2026-08-11');
+  });
+
+  it('잡아둔 광고 소재를 코어 링크의 utm_id로 넘긴다', () => {
+    window.sessionStorage.setItem('acti_upstream', 'instagram');
+    window.sessionStorage.setItem('acti_ad_id', 'paid-acti-2026-08-11');
+    stubBeacon(true);
+
+    openActtub();
+
+    const [openedUrl] = vi.mocked(window.open).mock.calls[0];
+    const params = new URL(String(openedUrl)).searchParams;
+    // 원래 쓰던 슬롯은 하나도 바뀌면 안 된다 — 바뀌는 순간 지금 쌓이는 통계가 끊긴다.
+    expect(params.get('utm_source')).toBe('acti');
+    expect(params.get('utm_medium')).toBe('result');
+    expect(params.get('utm_campaign')).toBe('acti_type');
+    expect(params.get('utm_term')).toBe('instagram');
+    expect(params.get('utm_id')).toBe('paid-acti-2026-08-11');
+  });
+
+  it('인바운드가 없으면 코어 링크는 전과 글자까지 같다', () => {
+    stubBeacon(true);
+
+    openActtub();
+
+    const [openedUrl] = vi.mocked(window.open).mock.calls[0];
+    expect(String(openedUrl)).toBe(ACTTUB_URL);
   });
 
   it('beacon 이 큐에 못 넣으면(false) fetch 로 한 번 더 시도한다', () => {

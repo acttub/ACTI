@@ -107,4 +107,12 @@ export function trackResultAction(action: ResultAction, resultCode: string): voi
     action,
     result_code: resultCode,
   });
+
+  /* 형제 서브프로젝트 6개는 코어 버튼 클릭을 `acttub_cta` + `from` 한 쌍으로 쏜다.
+     acti 만 이름이 달라 GA4 에서 "코어로 몇 명이 넘어갔나"를 한 표로 볼 때 혼자
+     빠졌다. 위 이벤트는 이미 쌓인 데이터가 있으니 그대로 두고, 코어 클릭일 때만
+     형제들과 같은 모양으로 한 번 더 보낸다. */
+  if (action === 'acttub_cta') {
+    window.gtag?.('event', 'acttub_cta', { from: 'acti' });
+  }
 }
